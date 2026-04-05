@@ -3,11 +3,13 @@ const express = require('express');
 const { getPipelineId, getStageId, createPerson, createDeal, createNote } = require('./pipedrive');
 const { sendDealNotification } = require('./slack');
 const { buildNoteHtml } = require('./buildNote');
+const { uploadQualifiedLeadConversion } = require('./googleAds');
 
 const app = express();
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
+console.log('[config] DISABLE_SLACK:', process.env.DISABLE_SLACK);
 const PIPELINE_NAME = process.env.PIPEDRIVE_PIPELINE_NAME || 'custodia';
 const STAGE_NAME = process.env.PIPEDRIVE_STAGE_NAME || 'prospeccion';
 
@@ -40,6 +42,7 @@ app.post('/webhook/webflow', async (req, res) => {
       contact_reason,
       message,
       utm_source,
+      gclid,
     } = formData;
 
     if (!name || !email) {
@@ -70,17 +73,32 @@ app.post('/webhook/webflow', async (req, res) => {
     const dealUrl = `https://app.pipedrive.com/deal/${deal.id}`;
 
     // 4) Enviar mensaje a Slack
-    await sendDealNotification({
-      dealUrl,
-      name,
-      email,
-      phone,
-      company,
-      contactReason: contact_reason,
-      message,
-      utmSource: utm_source,
-    });
-    console.log('Notificación enviada a Slack');
+    if (process.env.DISABLE_SLACK === 'true') {
+      console.log('Slack desactivado (DISABLE_SLACK=true), omitiendo notificación');
+    } else {
+      await sendDealNotification({
+        dealUrl,
+        name,
+        email,
+        phone,
+        company,
+        contactReason: contact_reason,
+        message,
+        utmSource: utm_source,
+      });
+      console.log('Notificación enviada a Slack');
+    }
+
+    // 5) Subir conversión a Google Ads solo si es paid_media y tiene gclid
+    // El fallo de Google Ads no debe bloquear la respuesta 200 al webhook
+    if (utm_source === 'paid_media' && gclid) {
+      try {
+        await uploadQualifiedLeadConversion(gclid);
+        console.log(`Conversión Qualified Lead subida a Google Ads (gclid: ${gclid})`);
+      } catch (gadsErr) {
+        console.error('Error al subir conversión a Google Ads:', gadsErr.message);
+      }
+    }
 
     return res.status(200).json({ success: true, dealId: deal.id, personId: person.id });
   } catch (err) {
