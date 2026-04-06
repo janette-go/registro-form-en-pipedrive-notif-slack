@@ -3,7 +3,6 @@ const express = require('express');
 const { getPipelineId, getStageId, createPerson, createDeal, createNote } = require('./pipedrive');
 const { sendDealNotification } = require('./slack');
 const { buildNoteHtml } = require('./buildNote');
-const { uploadQualifiedLeadConversion } = require('./googleAds');
 
 const app = express();
 app.use(express.json());
@@ -42,7 +41,6 @@ app.post('/webhook/webflow', async (req, res) => {
       contact_reason,
       message,
       utm_source,
-      gclid,
     } = formData;
 
     if (!name || !email) {
@@ -87,17 +85,6 @@ app.post('/webhook/webflow', async (req, res) => {
         utmSource: utm_source,
       });
       console.log('Notificación enviada a Slack');
-    }
-
-    // 5) Subir conversión a Google Ads solo si es paid_media y tiene gclid
-    // El fallo de Google Ads no debe bloquear la respuesta 200 al webhook
-    if (utm_source === 'paid_media' && gclid) {
-      try {
-        await uploadQualifiedLeadConversion(gclid);
-        console.log(`Conversión Qualified Lead subida a Google Ads (gclid: ${gclid})`);
-      } catch (gadsErr) {
-        console.error('Error al subir conversión a Google Ads:', gadsErr.message);
-      }
     }
 
     return res.status(200).json({ success: true, dealId: deal.id, personId: person.id });
