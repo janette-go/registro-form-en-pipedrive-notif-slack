@@ -41,6 +41,7 @@ app.post('/webhook/webflow', async (req, res) => {
       contact_reason,
       message,
       utm_source,
+      gclid,
     } = formData;
 
     if (!name || !email) {
@@ -48,7 +49,7 @@ app.post('/webhook/webflow', async (req, res) => {
     }
 
     // 1) Crear persona en Pipedrive
-    const person = await createPerson({ name, email, phone, company });
+    const person = await createPerson({ name, email, phone, company, gclid });
     console.log(`Persona creada: ${person.id} - ${name}`);
 
     // 2) Crear deal en pipeline custodia / stage prospeccion

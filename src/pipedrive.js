@@ -41,7 +41,7 @@ async function getOrCreateOrg(name) {
 }
 
 // Crea una persona en Pipedrive
-async function createPerson({ name, email, phone, company }) {
+async function createPerson({ name, email, phone, company, gclid }) {
   const payload = {
     name,
     email: [{ value: email, primary: true }],
@@ -50,6 +50,10 @@ async function createPerson({ name, email, phone, company }) {
 
   if (company) {
     payload.org_id = await getOrCreateOrg(company);
+  }
+
+  if (gclid && process.env.PIPEDRIVE_GCLID_FIELD_KEY) {
+    payload[process.env.PIPEDRIVE_GCLID_FIELD_KEY] = gclid;
   }
 
   const { data } = await api.post('/persons', payload);
