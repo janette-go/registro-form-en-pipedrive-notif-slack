@@ -41,6 +41,10 @@ app.post('/webhook/webflow', async (req, res) => {
       contact_reason,
       message,
       utm_source,
+      utm_medium,
+      utm_campaign,
+      utm_term,
+      utm_content,
       gclid,
     } = formData;
 
@@ -49,7 +53,7 @@ app.post('/webhook/webflow', async (req, res) => {
     }
 
     // 1) Crear persona en Pipedrive
-    const person = await createPerson({ name, email, phone, company, gclid });
+    const person = await createPerson({ name, email, phone, company, gclid, utm_source, utm_medium, utm_campaign, utm_term, utm_content, contact_reason });
     console.log(`Persona creada: ${person.id} - ${name}`);
 
     // 2) Crear deal en pipeline custodia / stage prospeccion
@@ -58,7 +62,8 @@ app.post('/webhook/webflow', async (req, res) => {
       title: dealTitle,
       personId: person.id,
       stageId,
-      contactReason: contact_reason,
+      message,
+      utm_source,
     });
     console.log(`Deal creado: ${deal.id} - ${dealTitle}`);
 

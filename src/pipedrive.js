@@ -41,7 +41,7 @@ async function getOrCreateOrg(name) {
 }
 
 // Crea una persona en Pipedrive
-async function createPerson({ name, email, phone, company, gclid }) {
+async function createPerson({ name, email, phone, company, gclid, utm_source, utm_medium, utm_campaign, utm_term, utm_content, contact_reason }) {
   const payload = {
     name,
     email: [{ value: email, primary: true }],
@@ -56,17 +56,32 @@ async function createPerson({ name, email, phone, company, gclid }) {
     payload[process.env.PIPEDRIVE_GCLID_FIELD_KEY] = gclid;
   }
 
+  if (utm_source)    payload[process.env.PIPEDRIVE_UTM_SOURCE_FIELD_KEY]      = utm_source;
+  if (utm_medium)    payload[process.env.PIPEDRIVE_UTM_MEDIUM_FIELD_KEY]      = utm_medium;
+  if (utm_campaign)  payload[process.env.PIPEDRIVE_UTM_CAMPAIGN_FIELD_KEY]    = utm_campaign;
+  if (utm_term)      payload[process.env.PIPEDRIVE_UTM_TERM_FIELD_KEY]        = utm_term;
+  if (utm_content)   payload[process.env.PIPEDRIVE_UTM_CONTENT_FIELD_KEY]     = utm_content;
+  if (contact_reason) payload[process.env.PIPEDRIVE_CONTACT_REASON_FIELD_KEY] = contact_reason;
+
   const { data } = await api.post('/persons', payload);
   return data.data;
 }
 
 // Crea un deal asociado a una persona en el stage indicado
-async function createDeal({ title, personId, stageId, contactReason }) {
+async function createDeal({ title, personId, stageId, message, utm_source }) {
   const payload = {
     title,
     person_id: personId,
     stage_id: stageId,
   };
+
+  if (message && process.env.PIPEDRIVE_DUDAS_COMENTARIOS_FIELD_KEY) {
+    payload[process.env.PIPEDRIVE_DUDAS_COMENTARIOS_FIELD_KEY] = message;
+  }
+
+  if (utm_source && process.env.PIPEDRIVE_UTM_SOURCE_DEAL_FIELD_KEY) {
+    payload[process.env.PIPEDRIVE_UTM_SOURCE_DEAL_FIELD_KEY] = utm_source;
+  }
 
   const { data } = await api.post('/deals', payload);
   return data.data;
